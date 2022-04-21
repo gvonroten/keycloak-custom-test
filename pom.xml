@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.inventage.keycloak.custom</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>server</module>
+        <module>config</module>
+        <module>extensions</module>
+        <module>themes</module>
+        <module>container</module>
+        <module>docker-compose</module>
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <keycloak.version>17.0.1</keycloak.version> <!-- update also keycloak-config-cli-${keycloak.version}.jar in keycloak-config -->
+        <jsondeepmerge.version>1.0.0-202110111110-36-7616eb8</jsondeepmerge.version>
+        <keycloak.dir>./target/keycloak</keycloak.dir>
+        <keycloak.target.dir>../server/${keycloak.dir}/</keycloak.target.dir> <!-- used in config & extension modules -->
+        <keycloak.providers.dir>../../server/${keycloak.dir}/providers</keycloak.providers.dir> <!-- used in extension modules -->
+        <keycloak.themes.dir>../server/${keycloak.dir}/themes</keycloak.themes.dir> <!-- used in themes module -->
+        <docker.pull.registry></docker.pull.registry> <!-- default is hub.docker.com, must end with "/" if specified -->
+        <docker.push.registry></docker.push.registry> <!-- must be defined for goal deploy, must end with "/" if specified -->
+        <docker.image.name>OVERWRITTEN</docker.image.name>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- https://mvnrepository.com/artifact/org.keycloak/keycloak-quarkus-dist -->
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-quarkus-dist</artifactId>
+                <version>${keycloak.version}</version>
+                <type>zip</type>
+            </dependency>
+            <!-- keycloak modules -->
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-parent</artifactId>
+                <version>${keycloak.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>org.keycloak</groupId>-->
+<!--                <artifactId>keycloak-quarkus-server</artifactId>-->
+<!--                <version>${keycloak.version}</version>-->
+<!--            </dependency>-->
+            <!-- junit -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.12</version>
+                <scope>test</scope>
+            </dependency>
+            <!-- utils -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.6</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>1.8</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.1.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>3.1.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.1.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.3.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>1.6.0</version>
+                </plugin>
+                <!-- for building Docker images -->
+                <plugin>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>docker-maven-plugin</artifactId>
+                    <version>0.38.1</version>
+                    <configuration>
+                        <images>
+                            <image>
+                                <name>${docker.push.registry}${docker.image.name}</name>
+                                <build>
+                                    <!--suppress UnresolvedMavenProperty -->
+                                    <contextDir>${docker.context}</contextDir>
+                                    <tags>
+                                        <tag>latest</tag>
+                                        <tag>${project.version}</tag>
+                                    </tags>
+                                    <filter>false</filter>
+                                </build>
+                            </image>
+                        </images>
+                    </configuration>
+                    <executions>
+                        <!-- build image -->
+                        <execution>
+                            <id>build-image</id>
+                            <phase>install</phase>
+                            <goals>
+                                <goal>build</goal>
+                            </goals>
+                        </execution>
+                        <!-- tag image -->
+                        <execution>
+                            <id>tag-image</id>
+                            <phase>install</phase>
+                            <goals>
+                                <goal>tag</goal>
+                            </goals>
+                        </execution>
+                        <!-- push image -->
+                        <execution>
+                            <id>push-image</id>
+                            <phase>deploy</phase>
+                            <goals>
+                                <goal>push</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+</project>
